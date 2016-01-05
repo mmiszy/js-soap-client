@@ -60,21 +60,21 @@ SOAPClientParameters._serialize = function(t, o)
     switch(typeof(o))
     {
         case "string":
-            s += "<" + t + ">";
+            s += "<" + t + " i:type=\"d:string\">";
             s += o.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             s += "</" + t + ">";
             break;
         case "number":
         case "boolean":
             s += "<" + t + ">";
-            s += o.toString(); 
+            s += o.toString();
             s += "</" + t + ">";
             break;
         case "object":
             // Date
             if(o.constructor.toString().indexOf("function Date()") > -1)
             {
-        
+
                 var year = o.getFullYear().toString();
                 var month = (o.getMonth() + 1).toString();
                 month = (month.length == 1) ? "0" + month : month;
@@ -104,7 +104,7 @@ SOAPClientParameters._serialize = function(t, o)
             // Array
             else if(o.constructor.toString().indexOf("function Array()") > -1)
             {
-				
+
                 s += "<" + t + " SOAP-ENC:arrayType=\"SOAP-ENC:Array[" + o.length + "]\" xsi:type=\"SOAP-ENC:Array\">";
                 for(var p in o)
                 {
@@ -198,7 +198,7 @@ SOAPClient._loadWsdl = function(url, method, parameters, async, callback)
 SOAPClient._onLoadWsdl = function(url, method, parameters, async, callback, req)
 {
     var wsdl = req.responseXML;
-    SOAPClient_cacheWsdl[url] = wsdl;	// save a copy in cache
+    SOAPClient_cacheWsdl[url] = wsdl;   // save a copy in cache
     return SOAPClient._sendSoapRequest(url, method, parameters, async, callback, wsdl);
 }
 SOAPClient._sendSoapRequest = function(url, method, parameters, async, callback, wsdl)
@@ -206,24 +206,34 @@ SOAPClient._sendSoapRequest = function(url, method, parameters, async, callback,
     // get namespace
     var ns = (typeof wsdl.documentElement.attributes["targetNamespace"] == "undefined") ? wsdl.documentElement.attributes.getNamedItem("targetNamespace").nodeValue : wsdl.documentElement.attributes["targetNamespace"].value;
     // build SOAP request
-    var sr =
-    "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-    "<soap:Envelope " +
-    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " +
-    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" " +
-    "xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" " +
-    (SOAPClient.explicitNS?"xmlns:tns=\"" + ns + "\"":"") +
-    parameters.printSchemaList() +
-    ">" +
-    (SOAPClient.auth?"<soap:Header><AuthHeader xmlns=\"" + ns + "\">" +
-    "<Username>"+SOAPClient.authUser+"</Username>" +
-    "<Password>"+SOAPClient.authPass+"</Password>" +
-    "</AuthHeader></soap:Header>":"") +
-    "<soap:Body>" +
-    (SOAPClient.explicitNS?"<tns:" + method + ">":"<" + method + " xmlns=\"" + ns + "\">") +
-    parameters.toXml() +
-    (SOAPClient.explicitNS?"</tns:" + method + ">":"</" + method + ">") +
-    "</soap:Body></soap:Envelope>";
+var sr =
+'<v:Envelope xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:d="http://www.w3.org/2001/XMLSchema" xmlns:c="http://schemas.xmlsoap.org/soap/encoding/" xmlns:v="http://schemas.xmlsoap.org/soap/envelope/">' +
+'<v:Header />' +
+'<v:Body>' +
+'<n0:getMainConcepts id="o0" c:root="1" xmlns:n0="http://ws.umls/">' +
+parameters.toXml() +
+'</n0:getMainConcepts>' +
+'</v:Body>' +
+'</v:Envelope>';
+
+    // var sr =
+    // "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+    // "<soap:Envelope " +
+    // "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " +
+    // "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" " +
+    // "xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" " +
+    // (SOAPClient.explicitNS?"xmlns:tns=\"" + ns + "\"":"") +
+    // parameters.printSchemaList() +
+    // ">" +
+    // (SOAPClient.auth?"<soap:Header><AuthHeader xmlns=\"" + ns + "\">" +
+    // "<Username>"+SOAPClient.authUser+"</Username>" +
+    // "<Password>"+SOAPClient.authPass+"</Password>" +
+    // "</AuthHeader></soap:Header>":"") +
+    // "<soap:Body>" +
+    // (SOAPClient.explicitNS?"<tns:" + method + ">":"<" + method + " xmlns=\"" + ns + "\">") +
+    // parameters.toXml() +
+    // (SOAPClient.explicitNS?"</tns:" + method + ">":"</" + method + ">") +
+    // "</soap:Body></soap:Envelope>";
     // send request
     var xmlHttp = SOAPClient._getXmlHttp();
     if (SOAPClient.userName && SOAPClient.password){
@@ -249,14 +259,14 @@ SOAPClient._sendSoapRequest = function(url, method, parameters, async, callback,
         return SOAPClient._onSendSoapRequest(method, async, callback, wsdl, xmlHttp);
 }
 
-SOAPClient._onSendSoapRequest = function(method, async, callback, wsdl, req) 
+SOAPClient._onSendSoapRequest = function(method, async, callback, wsdl, req)
 {
     var o = null;
     var nd = SOAPClient._getElementsByTagName(req.responseXML, method + "Result");
     if(nd.length == 0)
-        nd = SOAPClient._getElementsByTagName(req.responseXML, "return");	// PHP web Service?
+        nd = SOAPClient._getElementsByTagName(req.responseXML, "return");   // PHP web Service?
     if(nd.length == 0)
-        nd = SOAPClient._getElementsByTagName(req.responseXML, method + "Return");	// new PHP web Service?
+        nd = SOAPClient._getElementsByTagName(req.responseXML, method + "Return");  // new PHP web Service?
     if(nd.length == 0)
     {
         if(req.responseXML.getElementsByTagName("faultcode").length > 0)
@@ -296,7 +306,7 @@ SOAPClient._node2object = function(node, wsdlTypes)
         if(typeof tmpNodeNameObject[node.childNodes[i].nodeName] == "undefined")
             tmpNodeNameObject[node.childNodes[i].nodeName] = true;
         else isArray = true;
-            
+
     }
     var isarray = isArray || SOAPClient._getTypeFromWsdl(node.nodeName, wsdlTypes).toLowerCase().indexOf("arrayof") != -1;
     // object node
@@ -398,7 +408,7 @@ SOAPClient._getElementsByTagName = function(document, tagName)
     return document.getElementsByTagName(tagName);
 }
 // private: xmlhttp factory
-SOAPClient._getXmlHttp = function() 
+SOAPClient._getXmlHttp = function()
 {
     try
     {
